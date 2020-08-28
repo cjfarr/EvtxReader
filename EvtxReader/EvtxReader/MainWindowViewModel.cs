@@ -216,12 +216,7 @@
 						this.fileWorker.ReportProgress(0, record);
 					}
 				}
-				catch (BinaryXmlReadException ex)
-				{
-					anyExceptionOccur = true;
-					this.ProcessRecoverableException(ex);
-				}
-				catch (FragmentHeaderNotFoundException ex)
+				catch (RecoverableException ex)
 				{
 					anyExceptionOccur = true;
 					this.ProcessRecoverableException(ex);

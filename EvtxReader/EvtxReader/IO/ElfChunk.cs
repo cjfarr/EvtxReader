@@ -20,10 +20,13 @@
 		private byte[] buffer;
 		private byte[] guidBuffer;
 		private Dictionary<int, BinaryXmlTemplate> templates;
+		private UInt64 lastRecordId;
 
-        public ElfChunk(byte[] buffer, long fileOffset)
+		public ElfChunk(byte[] buffer, long fileOffset)
         {
 			this.buffer = buffer;
+			this.lastRecordId = BitConverter.ToUInt64(this.buffer, 32);
+
 			this.guidBuffer = new byte[16];
 			this.fileOffset = fileOffset;
 			this.templates = new Dictionary<int, BinaryXmlTemplate>();
@@ -166,10 +169,20 @@
 								e.ValueType == BinaryValueType.Utf16StringArray))
 							{
 								////There is a null terminator at the end of these
-								message.Append(Encoding.Unicode.GetString(
-									this.buffer,
-									eventDataDescriptors[dataElement.ValueIndex].Offset,
-									eventDataDescriptors[dataElement.ValueIndex].Size).TrimEnd('\0'));
+								int dataOffset = eventDataDescriptors[dataElement.ValueIndex].Offset;
+								int dataSize = eventDataDescriptors[dataElement.ValueIndex].Size;
+								if (dataOffset + dataSize > this.buffer.Length)
+								{
+									////I think the buffer is recycled by the writer, and not cleaned up afterwards.  I was seeing garbage data after the LastRecordId.
+									////I believe it just so happened that the garbage started with 0x2A2A0000 which made the logic believe there was a next record in the chunk.
+									////Even so, I will leave this here just in case this scenario really does occur.
+									throw new EventDataOutsideOfBufferException(
+										string.Format("Event data is refrenced outside of buffer. Record Offset: {0} BinaryXmlElement.Offset: {1}", this.FileOffset + record.ChunkOffset, dataElement.Offset), 
+										this.fileOffset + 65536, 
+										(int)ElfChunk.HeaderSize);
+								}
+
+								message.Append(Encoding.Unicode.GetString(this.buffer, dataOffset, dataSize).TrimEnd('\0'));
 							}
 
 							record.Message = message.ToString();
@@ -180,8 +193,13 @@
 
 				offset = record.GetNextRecordOffset();
                 yield return record;
-            }
-        }
+
+				if (record.RecordId == this.lastRecordId)
+				{
+					yield break;
+				}
+			}
+		}
 
 		private string ReadName(ref int offset)
 		{

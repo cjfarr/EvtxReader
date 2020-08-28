@@ -75,6 +75,7 @@
     <Compile Include="Converters\DataGridWidthConverter.cs" />
     <Compile Include="Converters\EventLevelToIconVisibilityConverter.cs" />
     <Compile Include="Exceptions\BinaryXmlReadException.cs" />
+    <Compile Include="Exceptions\EventDataOutsideOfBufferException.cs" />
     <Compile Include="Exceptions\FragmentHeaderNotFoundException.cs" />
     <Compile Include="Exceptions\InvalidElfChnkSignature.cs" />
     <Compile Include="Exceptions\RecoverableException.cs" />
